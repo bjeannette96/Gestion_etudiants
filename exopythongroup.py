@@ -1,7 +1,5 @@
-studentslist=[]
-
 #dictionnaire avec : id (int), nom (str), email (str), notes (liste de float)
-studentslist=[
+students_list=[
     {"id":1100223344,
      "nom":'ALAIN Jean',
      "email":"alainjean@email.com", 
@@ -14,7 +12,7 @@ studentslist=[
      "notes":[14,15.5,16.5]
      }]
 
-for s in studentslist:
+for s in students_list:
     print(s)
 
 def moyenne_notes(notes):
@@ -23,7 +21,7 @@ def moyenne_notes(notes):
         and divides it by the number of grades. '''
      return sum(notes) / len(notes)
 
-for student in studentslist:
+for student in students_list:
     moyenne = moyenne_notes(student["notes"])
     print(f"{student['nom']} : {moyenne:.2f}")
 
