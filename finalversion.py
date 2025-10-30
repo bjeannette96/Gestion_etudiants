@@ -13,9 +13,7 @@ class Student:
         notes (List[float]): List of grades (as floats).
     """
 
-    def __init__(
-        self, id: int, nom: str, email: str, notes: list[float] | None = None
-    ) -> None:
+    def __init__(self, id: int, nom: str, email: str, notes: list[float] | None = None) -> None:
         """
         Initializes a new Student object.
         Args:
@@ -47,7 +45,7 @@ class Student:
             try:
                 vals.append(float(note))
             except (TypeError, ValueError):
-                raise TypeError(f"Note non numérique détectée : {note!r}")
+                raise TypeError(f"Note non numérique détectée : {note!r}") #display the value as it is thanks to "!r"
         avg = fsum(vals) / len(vals)
         return round(avg, 2)
 
@@ -92,15 +90,15 @@ class Student:
         """
 
         try:
-            m = self.moyenne()
+            avg = self.moyenne()
         except TypeError:
-            m = "err"
-        return f"ID: {self.id} | Nom: {self.nom} | Email: {self.email} | Moyenne: {m}"
+            avg = "error"
+        return f"ID: {self.id} | Nom: {self.nom} | Email: {self.email} | Moyenne: {avg}"
 
-    @classmethod
-    def from_dict(cls, data: dict[str, any]) -> "Student":
+    
+    def from_dict(self, data: dict[str, any]) -> "Student":
         """
-        Creates a Student instance from a dictionary (useful for JSON loading).
+        Creates a Student from a dictionary (useful for JSON loading).
         Args:
             data (dict): A dictionary containing 'id', 'nom', 'email', and optionally 'notes'.
         Returns:
@@ -117,7 +115,7 @@ class Student:
         try:
             id_int = int(id_val)
         except (TypeError, ValueError):
-            raise ValueError(f"ID invalide dans le dict: {id_val!r}")
+            raise ValueError(f"ID invalide dans le dict: {id_val!r}") #display the value as it is thanks to "!r"
         if not isinstance(notes, list):
             notes = list(notes) if notes else []
         return cls(id_int, nom, email, notes)
@@ -146,7 +144,7 @@ def parse_notes_input(notes_str: str) -> list[float]:
         except ValueError:
             raise ValueError(f"Impossible de convertir en nombre : '{p}'")
         if not (0 <= f <= 20):
-            raise ValueError(f"Note hors intervalle [0, 20] : {f}")
+            raise ValueError(f"Note hors de l'intervalle [0, 20] : {f}")
         notes.append(f)
     return notes
 
@@ -294,8 +292,8 @@ def menu():
                 ).strip()
                 try:
                     notes = parse_notes_input(notes_str)
-                except ValueError as exc:
-                    print(f"Erreur dans les notes : {exc}. Opération annulée.")
+                except ValueError as excute:
+                    print(f"Erreur dans les notes : {excute}. Opération annulée.")
                     continue
 
                 new_id = generate_new_id(students)
@@ -320,8 +318,8 @@ def menu():
                     print(
                         f"ID: {found.id} | Nom: {found.nom} | Email: {found.email} | Notes: {found.notes} | Moyenne: {found.moyenne()}"
                     )
-                except ValueError as exc:
-                    print(exc)
+                except ValueError as excute:
+                    print(excute)
                     continue
 
             elif choix == "4":
