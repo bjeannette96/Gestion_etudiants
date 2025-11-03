@@ -1,34 +1,45 @@
-from __future__ import annotations
+"""
+Student management system.
+
+This module defines the Student class and helper functions
+for managing student data, calculating averages, validating emails,
+and saving/loading data to and from JSON files.
+It also includes an interactive menu for user interaction.
+"""
+
 from math import fsum
 import json
+from typing import Any
 
 
 class Student:
     """
     Represents a student.
     Attributes:
-        id (int): Unique identifier.
-        nom (str): Full name.
+        student_id (int): Unique identifier.
+        name (str): Full name.
         email (str): Email address.
-        notes (List[float]): List of grades (as floats).
+        grades (list[float]): List of grades (as floats).
     """
 
-    def __init__(self, id: int, nom: str, email: str, notes: list[float] | None = None) -> None:
+    def __init__(
+        self, student_id: int, name: str, email: str, grades: list[float] | None = None
+    ) -> None:
         """
         Initializes a new Student object.
         Args:
-            id (int): Unique identifier.
-            nom (str): Full name of the student.
+            student_id (int): Unique identifier.
+            name (str): Full name of the student.
             email (str): Email address.
-            notes (List[float] | None): Initial list of grades.
+            grades (List[float] | None): Initial list of grades.
         """
-
-        self.id = int(id)
-        self.nom = nom
+        self.student_id = int(student_id)
+        self.name = name
         self.email = email
-        self.notes: list[float] = list(notes) if notes else []
+        # copy to avoid aliasing
+        self.grades: list[float] = list(grades) if grades else []
 
-    def moyenne(self) -> float:
+    def average(self) -> float:
         """
         Calculates and returns the average of the grades, rounded to 2 decimal places.
         Returns:
@@ -36,31 +47,29 @@ class Student:
         Raises:
             TypeError: If any element in the grades list cannot be converted to a float.
         """
-
-        if not self.notes:
+        if not self.grades:
             return 0.0
 
         vals: list[float] = []
-        for note in self.notes:
+        for n in self.grades:
             try:
-                vals.append(float(note))
-            except (TypeError, ValueError):
-                raise TypeError(f"Note non numérique détectée : {note!r}") #display the value as it is thanks to "!r"
+                vals.append(float(n))
+            except (TypeError, ValueError) as exc:
+                raise TypeError(f"Note non numérique détectée : {n!r}") from exc
         avg = fsum(vals) / len(vals)
         return round(avg, 2)
 
-    def to_dict(self) -> dict[str, any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Returns a dictionary representation serializable to JSON.
         Returns:
-            dict: A dictionary containing id, name, email, and grades.
+            dict: A dictionary containing student_id, name, email, and grades.
         """
-
         return {
-            "id": self.id,
-            "nom": self.nom,
+            "id": self.student_id,
+            "nom": self.name,
             "email": self.email,
-            "notes": list(self.notes),
+            "notes": list(self.grades),
         }
 
     def valid_email(self) -> bool:
@@ -73,7 +82,6 @@ class Student:
         Returns:
             bool: True if the email appears valid, False otherwise.
         """
-
         if not self.email or "@" not in self.email:
             return False
         local, _, domain = self.email.partition("@")
@@ -88,17 +96,16 @@ class Student:
         Readable string representation of the student.
         Example: "ID: 1 | Name: Alice Dupont | Email: alice@example.com | Average: 15.25"
         """
-
         try:
-            avg = self.moyenne()
+            m = self.average()
         except TypeError:
-            avg = "error"
-        return f"ID: {self.id} | Nom: {self.nom} | Email: {self.email} | Moyenne: {avg}"
+            m = "err"
+        return f"ID: {self.student_id} | Nom: {self.name} | Email: {self.email} | Moyenne: {m}"
 
-    
-    def from_dict(self, data: dict[str, any]) -> "Student":
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Student":
         """
-        Creates a Student from a dictionary (useful for JSON loading).
+        Creates a Student instance from a dictionary (useful for JSON loading).
         Args:
             data (dict): A dictionary containing 'id', 'nom', 'email', and optionally 'notes'.
         Returns:
@@ -106,47 +113,45 @@ class Student:
         Notes:
             - Invalid values may raise exceptions or be ignored depending on the case.
         """
-
         id_val = data.get("id")
-        nom = data.get("nom", "")
+        name = data.get("nom", "")
         email = data.get("email", "")
-        notes = data.get("notes", [])
+        grades = data.get("notes", [])
 
         try:
             id_int = int(id_val)
-        except (TypeError, ValueError):
-            raise ValueError(f"ID invalide dans le dict: {id_val!r}") #display the value as it is thanks to "!r"
-        if not isinstance(notes, list):
-            notes = list(notes) if notes else []
-        return cls(id_int, nom, email, notes)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"ID invalide dans le dict: {id_val!r}") from exc
+        if not isinstance(grades, list):
+            grades = list(grades) if grades else []
+        return cls(id_int, name, email, grades)
 
 
-def parse_notes_input(notes_str: str) -> list[float]:
+def parse_grades_input(grades_str: str) -> list[float]:
     """
     Converts a string like "15, 12.5, 18" into a list of floats validated between 0 and 20.
     Args:
-        notes_str (str): string entered by the user.
+        grades_str (str): string entered by the user.
     Returns:
         list[float]: list of converted grades.
     Raises:
         ValueError: if a value cannot be converted to float or is outside the [0, 20] range.
     """
-
-    if not notes_str or not notes_str.strip():
+    if not grades_str or not grades_str.strip():
         return []
-    parts = [p.strip() for p in notes_str.split(",")]
-    notes: list[float] = []
+    parts = [p.strip() for p in grades_str.split(",")]
+    grades: list[float] = []
     for p in parts:
         if p == "":
             continue
         try:
             f = float(p)
-        except ValueError:
-            raise ValueError(f"Impossible de convertir en nombre : '{p}'")
-        if not (0 <= f <= 20):
-            raise ValueError(f"Note hors de l'intervalle [0, 20] : {f}")
-        notes.append(f)
-    return notes
+        except ValueError as exc:
+            raise ValueError(f"Impossible de convertir en nombre : '{p}'") from exc
+        if not 0 <= f <= 20:
+            raise ValueError(f"Note hors intervalle [0, 20] : {f}")
+        grades.append(f)
+    return grades
 
 
 def generate_new_id(students: list[Student]) -> int:
@@ -157,17 +162,10 @@ def generate_new_id(students: list[Student]) -> int:
     Returns:
         int: new identifier.
     """
-
-    if not students:
-        return 1
-    max_id = 0
-    for s in students:
-        try:
-            sid = int(s.id)
-        except (TypeError, ValueError):
-            continue
-        if sid > max_id:
-            max_id = sid
+    try:
+        max_id = max((int(s.student_id) for s in students), default=0)
+    except Exception:
+        max_id = 0
     return max_id + 1
 
 
@@ -182,7 +180,6 @@ def find_student_by_id(students: list[Student], searched_id: int) -> Student:
     Raises:
         ValueError: if no student with the given ID is found.
     """
-
     try:
         target = int(searched_id)
     except (TypeError, ValueError):
@@ -190,7 +187,7 @@ def find_student_by_id(students: list[Student], searched_id: int) -> Student:
 
     for s in students:
         try:
-            sid = int(s.id)
+            sid = int(s.student_id)
         except (TypeError, ValueError):
             continue
         if sid == target:
@@ -208,14 +205,14 @@ def save(students: list[Student], fichier: str = "etudiants.json") -> None:
 
     try:
         with open(fichier, "w", encoding="utf-8") as f:
-            json_list = [e.to_dict() for e in students]
+            json_list = [s.to_dict() for s in students]
             json.dump(json_list, f, ensure_ascii=False, indent=2)
-        print(f"Sauvegarde effectuée: {fichier}")
+        print(f"Sauvegarde effectuée dans le fichier: {fichier}")
     except IOError as exc:
         print(f"Erreur lors de la sauvegarde : {exc}")
 
 
-def charger(fichier: str = "etudiants.json") -> list[Student]:
+def load(fichier: str = "etudiants.json") -> list[Student]:
     """
     Loads the list of students from a JSON file.
     Returns an empty list if the file is missing or corrupted.
@@ -224,23 +221,22 @@ def charger(fichier: str = "etudiants.json") -> list[Student]:
     Returns:
         list[Student]: A list of Student objects.
     """
-
     try:
         with open(fichier, "r", encoding="utf-8") as f:
             raw = json.load(f)
         loaded: list[Student] = []
         if not isinstance(raw, list):
-            print("La racine doit être une liste.")
+            print("Fichier JSON mal formaté : la racine doit être une liste.")
             return []
         for item in raw:
             if not isinstance(item, dict):
                 continue
             try:
-                et = Student.from_dict(item)
+                st = Student.from_dict(item)
             except ValueError as exc:
                 print(f"Ignoré lors du chargement: {exc}")
                 continue
-            loaded.append(et)
+            loaded.append(st)
         return loaded
     except FileNotFoundError:
         return []
@@ -249,7 +245,7 @@ def charger(fichier: str = "etudiants.json") -> list[Student]:
         return []
 
 
-def afficher_etudiants(students: list[Student]) -> None:
+def display_students(students: list[Student]) -> None:
     """
     Displays all students (uses Student's __str__ method).
     """
@@ -257,8 +253,138 @@ def afficher_etudiants(students: list[Student]) -> None:
     if not students:
         print("\nAucun étudiant enregistré.")
         return
-    for e in students:
-        print(e)
+    for s in students:
+        print(s)
+
+
+def handle_add_student(students: list[Student]) -> None:
+    """
+    Interactive flow to add a new student to the `students` list.
+
+    Behaviour:
+      - User can cancel at any prompt by entering 'q' (case-insensitive).
+      - Validates email via Student.valid_email().
+      - Validates grades via parse_grades_input().
+      - Prevents duplicate emails.
+      - Appends a new Student on success and prints the new ID.
+    """
+    print("\n-- Ajoutez un nouvel étudiant (entrez 'q' pour annuler l'opération) --")
+
+    while True:
+        name = input("Nom complet : ").strip()
+        if name.lower() == "q":
+            print("L'ajout d'un nouvel étudiant annulé.")
+            return
+        if not name:
+            print("Le nom ne peut pas être vide. Réessayez ou entrez 'q' pour annuler.")
+            continue
+
+        email_input = input("Email: ").strip()
+        if email_input.lower() == "q":
+            print("L'ajout d'un nouvel étudiant annulé.")
+            return
+
+        # Check duplicate email
+        if any(s.email == email_input for s in students):
+            print(
+                "Cet email existe déjà. "
+                "Entrez une autre adresse mail ou entrez 'q' pour annuler."
+            )
+            continue
+
+        # Validate email using Student.valid_email
+        temp = Student(0, name, email_input, [])
+        if not temp.valid_email():
+            print(
+                "Format de l'adresse mail invalide. "
+                "Réessayez ou entrez 'q' pour annuler."
+            )
+            continue
+
+        grades_str = input(
+            "Notes (séparées par des virgules, ex: 15,12.5,18) — laissez vide si aucune : "
+        ).strip()
+        if grades_str.lower() == "q":
+            print("L'ajout d'un nouvel étudiant annulé.")
+            return
+
+        try:
+            grades = parse_grades_input(grades_str)
+        except ValueError as exc:
+            print(
+                f"Erreur dans les notes : {exc}. Réessayez ou entrez 'q' pour annuler."
+            )
+            continue
+
+        # All validations passed -> create and append student
+        new_id = generate_new_id(students)
+        new_student = Student(new_id, name, email_input, grades)
+        students.append(new_student)
+        print(f"\nÉtudiant ajouté avec ID {new_id}.")
+        return
+
+
+def handle_search(students: list[Student]) -> None:
+    """
+    Handles the user interaction for searching a student by ID.
+
+    Asks the user to input an ID, validates it, calls find_student_by_id(),
+    and displays the result (or an error message if not found).
+
+    Args:
+        students (list[Student]): The current list of students.
+    """
+    id_str = input("ID recherché : ").strip()
+
+    # Validate user input
+    if not id_str or not id_str.isdigit():
+        print(" ID invalide : doit être un entier positif.")
+        return
+
+    ident = int(id_str)
+
+    try:
+        found = find_student_by_id(students, ident)
+        print(
+            f"Étudiant trouvé :\n"
+            f"ID: {found.student_id}\n"
+            f"Nom: {found.name}\n"
+            f"Email: {found.email}\n"
+            f"Notes: {found.grades}\n"
+            f"Moyenne: {found.average()}\n"
+        )
+    except ValueError as exc:
+        print(f" {exc}")
+
+
+def handle_exit(students: list[Student]) -> bool:
+    """
+    Handles the exit process: asks for confirmation, saves data, and returns
+    whether the program should exit.
+
+    Args:
+        students (list[Student]): The current list of students.
+
+    Returns:
+        bool: True if the user confirmed exit, False otherwise.
+    """
+    confirm = input("Quitter ? (o/N) : ").strip().lower()
+    if confirm == "o":
+        try:
+            save(students, "etudiants.json")
+            print("Sauvegarde effectuée avant fermeture.")
+        except (OSError, IOError) as exc:
+            print(f"Erreur lors de la sauvegarde : {exc}")
+        print("A bientôt!")
+        return True
+    else:
+        print("Retour au menu principal.")
+        return False
+
+
+# ------------------------
+# Interactive menu
+# ------------------------
 
 
 def menu():
@@ -266,8 +392,8 @@ def menu():
     Main interactive menu.
     Handles adding, displaying, searching, saving, and exiting.
     """
-
-    students = charger("etudiants.json")  # charger au démarrage
+    students = load("etudiants.json")  # charger au démarrage
+    exiting = False
     try:
         while True:
             print("\n--- MENU ---")
@@ -276,73 +402,32 @@ def menu():
             print("3. Rechercher par ID")
             print("4. Sauvegarder")
             print("5. Quitter")
-            choix = input("Choix (1-5) : ").strip()
+            choice = input("Choix (1-5) : ").strip()
 
-            if choix == "1":
-                nom = input("Nom complet : ").strip()
-                email_input = input("Email : ").strip()
+            if choice == "1":
+                handle_add_student(students)
 
-                temp = Student(0, nom, email_input, [])
-                if not temp.valid_email():
-                    print("Email invalide. Opération annulée.")
-                    continue
+            elif choice == "2":
+                display_students(students)
 
-                notes_str = input(
-                    "Notes (séparées par des virgules, ex: 15,12.5,18) — laissez vide si aucune : "
-                ).strip()
-                try:
-                    notes = parse_notes_input(notes_str)
-                except ValueError as excute:
-                    print(f"Erreur dans les notes : {excute}. Opération annulée.")
-                    continue
+            elif choice == "3":
+                handle_search(students)
 
-                new_id = generate_new_id(students)
-                new_student = Student(new_id, nom, email_input, notes)
-                students.append(new_student)
-                print(f"\nÉtudiant ajouté avec ID {new_id}.")
-
-            elif choix == "2":
-                afficher_etudiants(students)
-
-            elif choix == "3":
-                id_str = input("ID recherché : ").strip()
-                try:
-                    if not id_str or not id_str.isdigit():
-                        raise ValueError("ID invalide : doit être un entier positif.")
-                    ident = int(id_str)
-                    try:
-                        found = find_student_by_id(students, ident)
-                    except ValueError as exc:
-                        print(exc)
-                        continue
-                    print(
-                        f"ID: {found.id} | Nom: {found.nom} | Email: {found.email} | Notes: {found.notes} | Moyenne: {found.moyenne()}"
-                    )
-                except ValueError as excute:
-                    print(excute)
-                    continue
-
-            elif choix == "4":
+            elif choice == "4":
                 save(students, "etudiants.json")
 
-            elif choix == "5":
-                confirm = input("Quitter ? (o/N) : ").strip().lower()
-                if confirm == "o":
-                    # sauvegarde finale avant de quitter
-                    save(students, "etudiants.json")
-                    print("Au revoir.")
+            elif choice == "5":
+                if handle_exit(students):
+                    exiting = True
                     break
-                else:
-                    print("Annulé, retour au menu.")
-
             else:
                 print("Choix invalide — entre 1 et 5.")
     finally:
-        # Au cas où une interruption survient, on sauvegarde quand même
-        try:
-            save(students, "etudiants.json")
-        except Exception:
-            pass
+        if not exiting:
+            try:
+                save(students, "etudiants.json")
+            except (OSError, IOError):
+                pass
 
 
 if __name__ == "__main__":
